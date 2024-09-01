@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yolo5
+  namespace: dev  # Change to 'prod' for production environment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: yolo5
+  template:
+    metadata:
+      labels:
+        app: yolo5
+    spec:
+      containers:
+      - name: yolo5
+        image: davidhei/yolo5-v1.1.0
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20

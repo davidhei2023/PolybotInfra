@@ -1,0 +1,10 @@
+cluster_name       = "davidhei-eks-cluster"
+aws_region         = "us-east-2"
+public_subnet_ids  = ["subnet-003d39a7e2f59f7ea", "subnet-04000561778b910f1", "subnet-0b1b3ede9f956fd5d"]
+desired_capacity   = 2
+max_capacity       = 5
+min_capacity       = 1
+instance_type      = "t3.medium"
+key_pair_name      = "davidhei-ohio-key"
+control_plane_sg_ids = ["sg-0e25deee5189c83d9"]
+worker_node_sg_ids = ["sg-0e25deee5189c83d9"]
