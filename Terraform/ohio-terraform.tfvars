@@ -1,4 +1,4 @@
-cluster_name = "davidhei-polybot-eks-cluster"
+cluster_name = "davidhei-ohio-polybot-k8s-cluster"
 aws_region = "us-east-2"
 ami_id = "ami-020d37acf0fc8a12d"
 public_subnet_ids = ["subnet-003d39a7e2f59f7ea", "subnet-04000561778b910f1", "subnet-0b1b3ede9f956fd5d"]

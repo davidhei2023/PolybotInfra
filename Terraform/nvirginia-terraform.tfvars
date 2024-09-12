@@ -1,6 +1,6 @@
-cluster_name = "davidhei-polybot-k8s-cluster"
+cluster_name = "davidhei-nvirginia-polybot-k8s-cluster"
 aws_region = "us-east-1"
-ami_id = "ami-01a8e201a0b9f5c01"
+ami_id = "ami-0e86e20dae9224db8"
 public_subnet_ids = ["subnet-064a745d973a1a759", "subnet-032532d88890595a5"]
 control_plane_iam_role = "davidhei-k8s-control-plane-role"
 control_plane_sg_ids = ["sg-0f1693e7e8edebc36"]
