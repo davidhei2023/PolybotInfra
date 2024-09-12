@@ -1,49 +1,66 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
+
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
 }
 
-# IAM Role for Control Plane
-resource "aws_iam_role" "eks_cluster_role" {
-  name = "${var.cluster_name}-eks-cluster-role"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "eks.amazonaws.com"
-        }
-      },
-    ]
+resource "aws_instance" "control_plane" {
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  subnet_id              = var.public_subnet_ids[0]
+  vpc_security_group_ids = var.control_plane_sg_ids
+  key_name               = var.key_pair_name
+  iam_instance_profile   = var.control_plane_iam_role
+
+  tags = {
+    Name = "${var.cluster_name}-control-plane"
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+  }
+
+  root_block_device {
+    volume_size = 30
+  }
+
+  user_data = templatefile("./node-bootstrap.sh", {
+    aws_region = var.aws_region
+    k8s_version = var.k8s_version
   })
 }
 
-resource "aws_iam_instance_profile" "control_plane_iam_role" {
-  name = "${var.cluster_name}-control-plane-iam-role"
-  role = aws_iam_role.eks_cluster_role.name
-}
 
-# IAM Role for Worker Nodes
-resource "aws_iam_role" "eks_node_role" {
-  name = "${var.cluster_name}-eks-node-role"
+resource "aws_instance" "worker_node" {
+  # number of worker nodes to provision
+  count = 1
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      },
-    ]
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  subnet_id              = var.public_subnet_ids[count.index % length(var.public_subnet_ids)]
+  vpc_security_group_ids = var.worker_node_sg_ids
+  key_name               = var.key_pair_name
+  iam_instance_profile   = var.worker_node_iam_role
+
+  tags = {
+    Name = "${var.cluster_name}-worker-node-${count.index}"
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+  }
+
+  root_block_device {
+    volume_size = 30
+  }
+
+  user_data = templatefile("./node-bootstrap.sh", {
+    aws_region = var.aws_region
+    k8s_version = var.k8s_version
   })
-}
-
-resource "aws_iam_instance_profile" "worker_node_iam_role" {
-  name = "${var.cluster_name}-worker-node-iam-role"
-  role = aws_iam_role.eks_node_role.name
 }
