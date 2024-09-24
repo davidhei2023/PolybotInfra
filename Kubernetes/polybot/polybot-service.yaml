@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: polybot-service
-  namespace: dev  # Change to 'prod' for production environment
+  namespace: dev
 spec:
   selector:
     app: polybot
