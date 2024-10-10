@@ -6,7 +6,7 @@ import boto3
 from bot import ObjectDetectionBot
 from aws_secretsmanager_caching import SecretCache, SecretCacheConfig
 
-aws_region = os.environ.get('AWS_REGION', 'us-east-2')
+aws_region = os.environ.get('AWS_REGION', 'us-east-1')
 
 client = boto3.session.Session().client(service_name='secretsmanager', region_name=aws_region)
 cache_config = SecretCacheConfig()
@@ -15,7 +15,7 @@ cache = SecretCache(config=cache_config, client=client)
 S3_PREDICTED_URL = os.getenv('S3_PREDICTED_URL')
 
 try:
-    TELEGRAM_TOKEN_SECRET = cache.get_secret_string('davidhei-telegram-token')
+    TELEGRAM_TOKEN_SECRET = cache.get_secret_string('davidhei-telegram-dev-token')
     TELEGRAM_TOKEN = json.loads(TELEGRAM_TOKEN_SECRET).get("TELEGRAM_TOKEN")
     if not TELEGRAM_TOKEN:
         raise ValueError("The TELEGRAM_TOKEN could not be found in the secrets manager.")

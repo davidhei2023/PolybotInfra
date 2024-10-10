@@ -21,7 +21,8 @@ class Bot:
         if current_webhook.url != webhook_url:
             self.telegram_bot_client.remove_webhook()
             time.sleep(0.5)
-            self.telegram_bot_client.set_webhook(url=webhook_url, timeout=60)
+            boto_client = boto3.client('acm', region_name=os.getenv('AWS_REGION'))
+            self.telegram_bot_client.set_webhook(url=webhook_url, timeout=60,certificate=boto_client.get_certificate(CertificateArn=os.getenv('AWS-CERTIFICATE-ARN'))["Certificate"])
             logger.info('Webhook set successfully')
         else:
             logger.info('Webhook is already set')

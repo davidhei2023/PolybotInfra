@@ -15,9 +15,9 @@ spec:
     spec:
       containers:
       - name: polybot
-        image: davidhei/polybot-v1.3.11
+        image: davidhei/davidhei-k8s-polybot-dev:0.0.5
         ports:
-        - containerPort: 8080
+        - containerPort: 8443
         resources:
           requests:
             cpu: "100m"
@@ -25,15 +25,21 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8080
-          initialDelaySeconds: 15
-          periodSeconds: 20
+        env:
+        - name: TELEGRAM_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: telegram-secret
+              key: TELEGRAM_TOKEN
+#        readinessProbe:
+#          httpGet:
+#            path: /healthz
+#            port: 8080
+#          initialDelaySeconds: 5
+#          periodSeconds: 10
+#        livenessProbe:
+#          httpGet:
+#            path: /healthz
+#            port: 8080
+#          initialDelaySeconds: 15
+#          periodSeconds: 20

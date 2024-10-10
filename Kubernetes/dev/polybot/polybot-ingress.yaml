@@ -10,7 +10,7 @@ spec:
   tls:
   - hosts:
     - davidhei-polybot-k8s.int-devops.click   # Your domain
-    secretName: davidhei-polybot-tls-secret    # The TLS secret created using your cert
+    secretName: davidhei-polybot-tls-dev-secret    # The TLS secret created using your cert
   rules:
   - host: davidhei-polybot-k8s.int-devops.click  # Your domain name
     http:

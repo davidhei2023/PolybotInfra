@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polybot-config
+  namespace: dev
+data:
+  TELEGRAM_APP_URL: "https://davidhei-polybot-k8s.int-devops.click"
+  ALB_URL: "http://polybot-service:8443"
+  AWS-REGION: "us-east-1"
+  BUCKET_NAME: "avidhei-k8s-dev-s3-bucket"
+  DYNAMODB_TABLE_NAME: "ydavidhei-k8s-dev-bot-dynamo-table"
+  YOLO_QUEUE_NAME: "https://sqs.us-east-1.amazonaws.com/019273956931/davidhei-k8s-dev-bot-sqs"
+  secretmanager: "davidhei-telegram-token"
+  AWS-CERTIFICATE-ARN: "arn:aws:acm:us-east-1:019273956931:certificate/c53d964d-778d-4bfe-9180-fbac219c85c2"
