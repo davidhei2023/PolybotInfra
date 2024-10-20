@@ -1,14 +1,11 @@
-
-import json
-import telebot
-from loguru import logger
 import os
 import time
-from telebot.types import InputFile
+import telebot
 import boto3
+import json
+from loguru import logger
 from botocore.exceptions import NoCredentialsError
-from telegram.constants import ParseMode
-
+from telebot.types import InputFile
 
 class Bot:
     def __init__(self, token, telegram_chat_url):
@@ -21,66 +18,49 @@ class Bot:
         if current_webhook.url != webhook_url:
             self.telegram_bot_client.remove_webhook()
             time.sleep(0.5)
-            boto_client = boto3.client('acm', region_name=os.getenv('AWS_REGION'))
-            self.telegram_bot_client.set_webhook(url=webhook_url, timeout=60,certificate=boto_client.get_certificate(CertificateArn=os.getenv('AWS-CERTIFICATE-ARN'))["Certificate"])
+
+            if os.getenv('ENV') == 'production':
+                # In production, do not pass the certificate
+                self.telegram_bot_client.set_webhook(url=webhook_url, timeout=60)
+            else:
+                # In local mode, use a self-signed cert
+                cert_path = os.getenv('SSL_CERT_PATH', '/home/ubuntu/YOURPUBLIC.pem')
+                if not os.path.exists(cert_path):
+                    raise FileNotFoundError(f"Certificate file not found at {cert_path}")
+                with open(cert_path, 'rb') as cert_file:
+                    self.telegram_bot_client.set_webhook(url=webhook_url, timeout=60, certificate=cert_file)
+
             logger.info('Webhook set successfully')
         else:
             logger.info('Webhook is already set')
 
         logger.info(f'Telegram Bot information\n\n{self.telegram_bot_client.get_me()}')
 
-    def send_text(self, chat_id, text):
-        self.telegram_bot_client.send_message(chat_id, text)
-
-    def send_text_with_quote(self, chat_id, text, quoted_msg_id):
-        self.telegram_bot_client.send_message(chat_id, text, reply_to_message_id=quoted_msg_id)
-
-    def send_message(self, chat_id, text, parse_mode=None):
-        self.bot.send_message(chat_id, text, parse_mode=ParseMode.HTML)
-
+    # Define the missing methods
     def is_current_msg_photo(self, msg):
         return 'photo' in msg
 
     def download_user_photo(self, msg):
-        if not self.is_current_msg_photo(msg):
-            raise RuntimeError(f'Message content of type \'photo\' expected')
-
-        file_info = self.telegram_bot_client.get_file(msg['photo'][-1]['file_id'])
-        data = self.telegram_bot_client.download_file(file_info.file_path)
-        folder_name = file_info.file_path.split('/')[0]
-
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
-
-        with open(file_info.file_path, 'wb') as photo:
-            photo.write(data)
-
-        return file_info.file_path
+        file_id = msg['photo'][-1]['file_id']
+        file_info = self.telegram_bot_client.get_file(file_id)
+        downloaded_file = self.telegram_bot_client.download_file(file_info.file_path)
+        file_path = f"/tmp/{file_id}.jpg"
+        with open(file_path, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        return file_path
 
     def upload_to_s3(self, file_path, bucket_name, s3_file_name):
-        s3 = boto3.client('s3')
+        s3_client = boto3.client('s3')
         try:
-            s3.upload_file(file_path, bucket_name, s3_file_name)
-            logger.info(f"Upload Successful: {file_path} to bucket {bucket_name} as {s3_file_name}")
-        except FileNotFoundError:
-            logger.error(f"The file was not found: {file_path}")
-            return None
+            s3_client.upload_file(file_path, bucket_name, s3_file_name)
+            s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_file_name}"
+            return s3_url
         except NoCredentialsError:
-            logger.error("Credentials not available")
+            logger.error("Credentials not available for S3 upload")
             return None
 
-        return f"s3://{bucket_name}/{s3_file_name}"
-
-    def send_photo(self, chat_id, img_path):
-        if not os.path.exists(img_path):
-            raise RuntimeError("Image path doesn't exist")
-
-        self.telegram_bot_client.send_photo(chat_id, InputFile(img_path))
-
-    def handle_message(self, msg):
-        logger.info(f'Incoming message: {msg}')
-        self.send_text(msg['chat']['id'], f'Your original message: {msg["text"]}')
-
+    def send_text(self, chat_id, text):
+        self.telegram_bot_client.send_message(chat_id, text)
 
 class ObjectDetectionBot(Bot):
     def __init__(self, token, telegram_chat_url, sqs_queue_url, aws_region):
@@ -96,7 +76,9 @@ class ObjectDetectionBot(Bot):
                 photo_path = self.download_user_photo(msg)
                 logger.info(f"Photo downloaded to: {photo_path}")
 
-                s3_bucket_name = os.environ['S3_BUCKET_NAME']
+                s3_bucket_name = os.environ.get('S3_BUCKET_NAME')
+                if not s3_bucket_name:
+                    raise ValueError("S3_BUCKET_NAME environment variable is not set.")
                 s3_file_name = os.path.basename(photo_path)
                 s3_url = self.upload_to_s3(photo_path, s3_bucket_name, s3_file_name)
 
@@ -106,7 +88,7 @@ class ObjectDetectionBot(Bot):
 
                 logger.info(f"Photo uploaded to S3: {s3_url}")
 
-                # Instead of direct HTTP request, send a job to SQS
+                # Send a job to SQS
                 job_message = {
                     'img_name': s3_file_name,
                     'chat_id': msg['chat']['id']

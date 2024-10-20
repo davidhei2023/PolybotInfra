@@ -15,31 +15,53 @@ spec:
     spec:
       containers:
       - name: polybot
-        image: davidhei/davidhei-k8s-polybot-dev:0.0.5
+        image: davidhei/davidhei-k8s-polybot-dev:0.1.0
         ports:
-        - containerPort: 8443
+        - containerPort: 8443  # SSL port
+
         resources:
           requests:
-            cpu: "100m"
-            memory: "128Mi"
+            cpu: "250m"
+            memory: "256Mi"
           limits:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: "1"
+            memory: "1Gi"
+
         env:
         - name: TELEGRAM_TOKEN
           valueFrom:
             secretKeyRef:
               name: telegram-secret
               key: TELEGRAM_TOKEN
-#        readinessProbe:
-#          httpGet:
-#            path: /healthz
-#            port: 8080
-#          initialDelaySeconds: 5
-#          periodSeconds: 10
-#        livenessProbe:
-#          httpGet:
-#            path: /healthz
-#            port: 8080
-#          initialDelaySeconds: 15
-#          periodSeconds: 20
+        - name: TELEGRAM_APP_URL
+          value: "https://davidhei-polybot-k8s.int-devops.click"  # Update with actual value
+        - name: AWS_REGION
+          value: "us-east-1"
+        - name: S3_PREDICTED_URL
+          value: "https://davidhei-k8s-dev-s3-bucket.s3.amazonaws.com/predicted/"  # Update with actual value
+        - name: DYNAMODB_TABLE_NAME
+          value: "davidhei-k8s-dev-bot-dynamo-table"  # Update with actual value
+        - name: SQS_QUEUE_URL
+          valueFrom:
+            secretKeyRef:
+              name: sqs-queue-url-secret
+              key: SQS_QUEUE_URL
+        - name: S3_BUCKET_NAME  # Added this environment variable
+          value: "davidhei-k8s-dev-s3-bucket"  # Replace with your actual S3 bucket name
+
+        # Mounting the public certificate and private key
+        volumeMounts:
+        - name: ssl-certs
+          mountPath: /home/ubuntu/YOURPUBLIC.pem  # Public certificate
+          subPath: YOURPUBLIC.pem
+        - name: ssl-private-key
+          mountPath: /home/ubuntu/YOURPRIVATE.key  # Private key
+          subPath: YOURPRIVATE.key
+
+      volumes:
+      - name: ssl-certs
+        secret:
+          secretName: polybot-ssl-secret
+      - name: ssl-private-key
+        secret:
+          secretName: polybot-ssl-secret
